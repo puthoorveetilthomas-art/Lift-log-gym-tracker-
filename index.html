@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<link rel="manifest" href="manifest.webmanifest">
+<title>LiftLog — Gym Tracker</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#131e30;--panel2:#1b2940;--line:#2a3a53;--txt:#eef4ff;--muted:#9aabc3;--accent:#a3e635;--red:#fb7185}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:15px system-ui,-apple-system,Segoe UI,sans-serif;padding-bottom:88px}
+header{padding:22px 18px 16px;background:linear-gradient(140deg,#17263c,#0b1220);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:4}
+.brand{font-size:12px;letter-spacing:2px;color:var(--accent);font-weight:800}.headrow{display:flex;justify-content:space-between;align-items:center;gap:12px}.headrow h1{font-size:25px;margin:5px 0 0}.sub{color:var(--muted);font-size:12px;margin-top:4px}
+main{max-width:760px;margin:auto;padding:16px}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:5;display:flex;background:#111c2c;border-top:1px solid var(--line);padding:8px max(8px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));justify-content:space-around}
+nav button{background:none;border:0;color:var(--muted);font-size:11px;padding:6px 9px;display:flex;flex-direction:column;align-items:center;gap:3px}nav button.active{color:var(--accent)}nav b{font-size:19px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.stat,.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px}.stat small,.muted{color:var(--muted)}.stat strong{display:block;font-size:25px;margin-top:5px}.stat em{font-style:normal;color:var(--accent);font-size:11px}
+h2{font-size:18px;margin:20px 0 10px}h3{font-size:15px;margin:0 0 8px}.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.btn{border:0;border-radius:11px;padding:11px 14px;background:var(--accent);color:#14200b;font-weight:800}.btn.secondary{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}.btn.danger{background:#48202b;color:#ffdbe1}.btn.small{padding:8px 10px;font-size:12px}.actions{display:flex;gap:8px;flex-wrap:wrap}
+input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0d1727;color:var(--txt);font:inherit;margin:5px 0 12px}label{display:block;color:var(--muted);font-size:12px;margin-top:8px}
+.exercise{padding:12px 0;border-top:1px solid var(--line)}.sets{display:flex;flex-wrap:wrap;gap:6px}.set{background:var(--panel2);border-radius:8px;padding:6px 9px;font-size:12px}
+.session{border-left:3px solid var(--accent);padding-left:12px;margin:14px 0}.empty{padding:28px;text-align:center;color:var(--muted)}.hidden{display:none!important}
+.toast{position:fixed;bottom:82px;left:50%;transform:translateX(-50%);background:#e6f9c8;color:#1b2b0b;padding:10px 15px;border-radius:10px;font-weight:700;z-index:10}
+small{font-size:12px}.hint{font-size:12px;color:var(--muted);line-height:1.5}
+</style>
+</head>
+<body>
+<header><div class="headrow"><div><div class="brand">LIFTLOG • PERSONAL TRAINING</div><h1>My Gym Tracker</h1><div class="sub">Your training. Your progress. Stored on this device.</div></div><div style="font-size:28px">🏋️</div></div></header>
+<main>
+<section id="dashboard">
+<div class="grid">
+<div class="stat"><small>Latest body weight</small><strong id="latestWeight">—</strong><em>KG</em></div>
+<div class="stat"><small>Workout sessions</small><strong id="sessionCount">0</strong><em>RECORDED</em></div>
+</div>
+<div class="card"><div class="row"><div><h3>Consistency matters</h3><div class="muted" id="lastWorkout">No workout logged yet</div></div><span style="font-size:27px">🔥</span></div></div>
+<div class="row"><h2>Recent workouts</h2><button class="btn small" onclick="showTab('workout')">＋ Log workout</button></div>
+<div id="recent"></div>
+<div class="row"><h2>Weight progress</h2><button class="btn secondary small" onclick="showTab('progress')">View all</button></div>
+<div class="card" id="weightSummary"></div>
+</section>
+
+<section id="workout" class="hidden">
+<div class="row"><h2>Log a workout</h2><span class="muted">New session</span></div>
+<div class="card">
+<label>Workout name</label><input id="workoutName" placeholder="e.g. Upper A">
+<label>Date</label><input id="workoutDate" type="date">
+<div id="exerciseFields"></div>
+<div class="actions"><button class="btn secondary" onclick="addExerciseField()">＋ Add exercise</button><button class="btn" onclick="saveWorkout()">Save workout</button></div>
+</div>
+<h2>Previous sessions</h2><div id="allSessions"></div>
+</section>
+
+<section id="progress" class="hidden">
+<h2>Body weight</h2>
+<div class="card">
+<label>Weight (kg)</label><input id="weightInput" type="number" step="0.1" placeholder="e.g. 92.5">
+<label>Date</label><input id="weightDate" type="date">
+<button class="btn" onclick="addWeight()">Save weight</button>
+</div>
+<h2>Weight history</h2><div id="weightHistory"></div>
+<h2>Measurements</h2>
+<div class="card">
+<label>Date</label><input id="measureDate" type="date">
+<div class="grid">
+<div><label>Waist (cm)</label><input id="waist" type="number" step="0.1"></div>
+<div><label>Chest (cm)</label><input id="chest" type="number" step="0.1"></div>
+<div><label>Arms (cm)</label><input id="arms" type="number" step="0.1"></div>
+<div><label>Thigh (cm)</label><input id="thigh" type="number" step="0.1"></div>
+</div>
+<button class="btn" onclick="addMeasurement()">Save measurements</button>
+</div><div id="measurementHistory"></div>
+</section>
+
+<section id="backup" class="hidden">
+<h2>Backup & restore</h2>
+<div class="card">
+<h3>Protect your training history</h3>
+<p class="hint">Your records are stored in this app's on-device database. Export a backup regularly, especially before changing or resetting your phone.</p>
+<div class="actions"><button class="btn" onclick="exportBackup()">Export backup</button><button class="btn secondary" onclick="document.getElementById('restoreFile').click()">Restore backup</button><input id="restoreFile" type="file" accept=".json,application/json" class="hidden" onchange="restoreBackup(event)"></div>
+</div>
+<div class="card">
+<h3>Imported starting history</h3><p class="hint" id="importInfo">Checking saved data…</p>
+</div>
+<div class="card">
+<h3>Install on Android</h3><p class="hint">When this app is hosted on a secure HTTPS address, open it in Chrome, tap the menu, then choose “Install app” or “Add to Home screen”. A local file alone cannot install as a full offline PWA.</p>
+</div>
+<div class="card"><h3>Data controls</h3><p class="hint">Do not clear this app's site data unless you have exported a backup first.</p><button class="btn danger" onclick="clearAll()">Delete all app data</button></div>
+</section>
+</main>
+<nav>
+<button class="active" data-tab="dashboard" onclick="showTab('dashboard')"><b>⌂</b>Home</button>
+<button data-tab="workout" onclick="showTab('workout')"><b>＋</b>Workout</button>
+<button data-tab="progress" onclick="showTab('progress')"><b>↗</b>Progress</button>
+<button data-tab="backup" onclick="showTab('backup')"><b>⇧</b>Backup</button>
+</nav>
+<div id="toast" class="toast hidden"></div>
+<script>
+const DB='liftlog-db', STORE='state';
+let state={sessions:[],weights:[],measurements:[]};
+const initial={sessions:[],weights:[],measurements:[]}
+function dbOpen(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+async function load(){const db=await dbOpen();const val=await new Promise((res,rej)=>{const r=db.transaction(STORE).objectStore(STORE).get('main');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});if(val)state=val;else{state=initial;await persist()}render()}
+async function persist(){const db=await dbOpen();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(state,'main');tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}
+function toast(s){const el=document.getElementById('toast');el.textContent=s;el.classList.remove('hidden');setTimeout(()=>el.classList.add('hidden'),2200)}
+function fmt(d){return d?new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—'}
+function showTab(id){document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));if(id==='workout')renderSessions();if(id==='progress')renderProgress();if(id==='backup')document.getElementById('importInfo').textContent=`${state.sessions.length} workouts • ${state.weights.length} weight entries • ${state.measurements.length} measurements saved on this device.`}
+function render(){renderDashboard();renderSessions();renderProgress()}
+function renderDashboard(){const w=[...state.weights].sort((a,b)=>b.date.localeCompare(a.date))[0];document.getElementById('latestWeight').textContent=w?Number(w.kg).toFixed(1):'—';document.getElementById('sessionCount').textContent=state.sessions.length;const s=[...state.sessions].sort((a,b)=>b.date.localeCompare(a.date))[0];document.getElementById('lastWorkout').textContent=s?`${s.name} • ${fmt(s.date)}`:'No workout logged yet';const recent=[...state.sessions].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);document.getElementById('recent').innerHTML=recent.length?recent.map(sessionHTML).join(''):'<div class="empty">Your workouts will appear here.</div>';document.getElementById('weightSummary').textContent=w?`Latest entry: ${Number(w.kg).toFixed(1)} kg on ${fmt(w.date)}`:'Add your first weight entry.'}
+function sessionHTML(s){return `<div class="card"><div class="row"><div><b>${esc(s.name)}</b><div class="muted">${fmt(s.date)} • ${(s.exercises||[]).length} exercises</div></div><span>🏋️</span></div>${(s.exercises||[]).map(e=>`<div class="exercise"><b>${esc(e.name)}</b><div class="sets">${(e.sets||[]).map(x=>`<span class="set">${esc(x.kg)} kg × ${esc(x.reps)}</span>`).join('')}</div></div>`).join('')}</div>`}
+function renderSessions(){document.getElementById('allSessions').innerHTML=[...state.sessions].sort((a,b)=>b.date.localeCompare(a.date)).map(sessionHTML).join('')||'<div class="empty">No sessions yet.</div>'}
+function renderProgress(){document.getElementById('weightHistory').innerHTML=[...state.weights].sort((a,b)=>b.date.localeCompare(a.date)).map(w=>`<div class="card row"><span>${fmt(w.date)}</span><b>${Number(w.kg).toFixed(1)} kg</b></div>`).join('')||'<div class="empty">No weight entries yet.</div>';document.getElementById('measurementHistory').innerHTML=[...state.measurements].sort((a,b)=>b.date.localeCompare(a.date)).map(m=>`<div class="card"><b>${fmt(m.date)}</b><div class="muted">Waist ${m.waist||'—'} • Chest ${m.chest||'—'} • Arms ${m.arms||'—'} • Thigh ${m.thigh||'—'} cm</div></div>`).join('')||'<div class="empty">No measurements yet.</div>'}
+function addExerciseField(name='',sets=[{kg:'',reps:''},{kg:'',reps:''},{kg:'',reps:''}]){const wrap=document.createElement('div');wrap.className='exercise-entry card';wrap.innerHTML=`<div class="row"><b>Exercise</b><button class="btn danger small" type="button" onclick="this.closest('.exercise-entry').remove()">Remove</button></div><label>Exercise name</label><input class="exname" placeholder="e.g. Bench press" value="${esc(name)}"><div class="setinputs">${sets.map(x=>`<div class="grid"><div><label>Weight (kg)</label><input class="kg" type="number" step="0.5" value="${esc(x.kg)}" placeholder="kg"></div><div><label>Reps / seconds</label><input class="reps" type="number" value="${esc(x.reps)}" placeholder="reps"></div></div>`).join('')}</div><button class="btn secondary small" type="button" onclick="addSet(this)">＋ Add set</button>`;document.getElementById('exerciseFields').appendChild(wrap)}
+function addSet(btn){const d=document.createElement('div');d.className='grid';d.innerHTML='<div><label>Weight (kg)</label><input class="kg" type="number" step="0.5" placeholder="kg"></div><div><label>Reps / seconds</label><input class="reps" type="number" placeholder="reps"></div>';btn.previousElementSibling.appendChild(d)}
+function saveWorkout(){const name=document.getElementById('workoutName').value.trim(),date=document.getElementById('workoutDate').value;const exercises=[...document.querySelectorAll('.exercise-entry')].map(e=>({name:e.querySelector('.exname').value.trim(),sets:[...e.querySelectorAll('.grid')].map(g=>({kg:g.querySelector('.kg').value,reps:g.querySelector('.reps').value})).filter(s=>s.kg||s.reps)})).filter(e=>e.name);if(!name||!date||!exercises.length){toast('Enter a workout name, date and at least one exercise.');return}state.sessions.push({day:new Date(date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'}).toLowerCase(),name,date,exercises,completed:`${exercises.length} exercises`});persist().then(()=>{toast('Workout saved');document.getElementById('workoutName').value='';document.getElementById('exerciseFields').innerHTML='';addExerciseField();render()})}
+function addWeight(){const kg=Number(document.getElementById('weightInput').value),date=document.getElementById('weightDate').value;if(!(kg>0)||!date){toast('Enter a valid weight and date.');return}state.weights.push({date,kg});persist().then(()=>{document.getElementById('weightInput').value='';toast('Weight saved');render()})}
+function addMeasurement(){const date=document.getElementById('measureDate').value;if(!date){toast('Choose a date.');return}state.measurements.push({date,waist:val('waist'),chest:val('chest'),arms:val('arms'),thigh:val('thigh')});persist().then(()=>{toast('Measurements saved');renderProgress()})}
+function val(id){return document.getElementById(id).value}
+function exportBackup(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='liftlog-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);toast('Backup exported')}
+function restoreBackup(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=async()=>{try{const x=JSON.parse(r.result);if(!Array.isArray(x.sessions)||!Array.isArray(x.weights))throw Error('Invalid backup');if(!confirm('Restore this backup? It will replace the data currently saved in this app.'))return;state={sessions:x.sessions,weights:x.weights,measurements:Array.isArray(x.measurements)?x.measurements:[]};await persist();render();toast('Backup restored')}catch(e){alert('Could not restore: '+e.message)}ev.target.value=''};r.readAsText(file)}
+async function clearAll(){if(!confirm('Permanently delete all workout, weight and measurement data from this app? Export a backup first if you need it.'))return;state={sessions:[],weights:[],measurements:[]};await persist();render();toast('App data deleted')}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+const today=new Date().toISOString().slice(0,10);document.getElementById('workoutDate').value=today;document.getElementById('weightDate').value=today;document.getElementById('measureDate').value=today;addExerciseField();
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+load();
+</script>
+</body></html>

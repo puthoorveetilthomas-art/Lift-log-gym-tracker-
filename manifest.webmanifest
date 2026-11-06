@@ -1,0 +1,17 @@
+{
+  "name": "LiftLog \u2014 Personal Gym Tracker",
+  "short_name": "LiftLog",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#101827",
+  "description": "Offline personal workout and progress tracker",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
